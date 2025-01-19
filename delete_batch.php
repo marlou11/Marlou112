@@ -1,31 +1,46 @@
 <?php
-// Include your database connection
-include('db_connection.php');
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Include your database connection file (adjust the path as needed)
+include 'db_connection.php';
 
+// Get the raw POST data
+$inputData = file_get_contents('php://input');
+$data = json_decode($inputData, true);
 
-// Check if the necessary POST data exists
-if (isset($_POST['batchId'])) {
-    $batchId = (int)$_POST['batchId'];
+// Check if batchIds are passed in the request
+if (isset($data['batchIds']) && is_array($data['batchIds'])) {
+    $batchIds = $data['batchIds'];
 
-    // Prepare SQL to delete the batch
-    $deleteBatchSql = "DELETE FROM distribution_batches WHERE batch_id = $batchId";
-    
-    if (mysqli_query($conn, $deleteBatchSql)) {
-        // Also delete related distribution records
-        $deleteDistributionsSql = "DELETE FROM distribution_records WHERE batch_id = $batchId";
-        mysqli_query($conn, $deleteDistributionsSql);
-        
-        echo json_encode(["status" => "success", "message" => "Batch deleted successfully."]);
+    // Prepare the placeholders for the SQL query (to handle multiple batch IDs)
+    $placeholders = implode(',', array_fill(0, count($batchIds), '?'));
+
+    // Prepare the SQL query to delete batches based on IDs
+    $sql = "DELETE FROM batches WHERE id IN ($placeholders)";
+
+    // Prepare the statement
+    if ($stmt = $conn->prepare($sql)) {
+        // Bind the batch IDs to the prepared statement
+        $stmt->bind_param(str_repeat('i', count($batchIds)), ...$batchIds);
+
+        // Execute the statement
+        if ($stmt->execute()) {
+            // Return success response
+            echo json_encode(['success' => true, 'message' => 'Batches deleted successfully.']);
+        } else {
+            // Return error if something went wrong
+            echo json_encode(['success' => false, 'message' => 'Failed to delete batches.']);
+        }
+
+        // Close the statement
+        $stmt->close();
     } else {
-        echo json_encode(["status" => "error", "message" => mysqli_error($conn)]);
+        echo json_encode(['success' => false, 'message' => 'Failed to prepare the SQL query.']);
     }
+
 } else {
-    echo json_encode(["status" => "error", "message" => "Required data missing!"]);
+    // If no batch IDs are provided
+    echo json_encode(['success' => false, 'message' => 'No batch IDs provided.']);
 }
 
 // Close the database connection
-mysqli_close($conn);
+$conn->close();
 ?>

@@ -2,29 +2,26 @@
 // Database connection
 $conn = new mysqli('localhost', 'username', 'password', 'arms_db');
 
-// Check connection
-if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
+// Create a PDO instance
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
 }
 
-$rsba = $_GET['rsba'];
+// Check if the barangay parameter is passed
+if (isset($_GET['barangay'])) {
+    $barangay = $_GET['barangay'];
 
-// Use prepared statement to prevent SQL injection
-$stmt = $conn->prepare("SELECT name, rsba_number FROM farmers WHERE rsba_number LIKE ?");
-$searchTerm = "%$rsba%";
-$stmt->bind_param('s', $searchTerm);
-$stmt->execute();
-$result = $stmt->get_result();
+    // Fetch farmers based on the selected barangay
+    $query = "SELECT rsba_number, name FROM farmers WHERE barangay = ?";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$barangay]);
 
-$farmers = [];
-while ($row = $result->fetch_assoc()) {
-    $farmers[] = $row;
+    $farmers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Return the data as JSON
+    echo json_encode(['farmers' => $farmers]);
 }
-
-// Set content type to JSON
-header('Content-Type: application/json');
-echo json_encode($farmers);
-
-$stmt->close();
-$conn->close();
 ?>

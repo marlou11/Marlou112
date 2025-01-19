@@ -1,108 +1,446 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Batch Management</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Same styles as before */
-    </style>
-</head>
+
+<style>
+    /* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+button {
+    padding: 10px 15px;
+    font-size: 14px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:focus {
+    outline: none;
+}
+
+/* Button Container */
+.button-container {
+    margin: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+/* Form Styles */
+form label {
+    font-size: 16px;
+    display: block;
+    margin: 8px 0 4px;
+}
+
+form input,
+form select {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+form input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+form input[type="number"]::-webkit-outer-spin-button,
+form input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+button[type="submit"] {
+    background-color: #007BFF;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Batch Container Styles */
+.batch-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+}
+
+.batch-box {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 250px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.batch-box h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.batch-box p {
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+.batch-checkbox {
+    margin-right: 10px;
+}
+
+.batch-box:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.batch-box input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+/* Modal for Adding Distribution Styles */
+#distributionModal p {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+#distributionModal select {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .batch-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .batch-box {
+        width: 90%;
+        margin: 10px 0;
+    }
+
+    .modal-content {
+        padding: 15px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+}
+
+</style>
 <body>
-    <div class="container">
-        <h1>Batch Management System</h1>
 
-        <div class="button-container">
-            <button onclick="openModal('batchModal')">Create Batch</button>
-        </div>
+    <!-- Create Batch Button -->
+    <div class="button-container">
+        <button onclick="openBatchModal()">Create Batch</button>
+    </div>
 
-        <div class="batch-list" id="batchList">
-            <h2>Batch List</h2>
-            <!-- Dynamic Batch List -->
+    <!-- Delete Selected Button -->
+    <div class="button-container">
+        <button onclick="deleteSelectedBatches()">Delete Selected Batches</button>
+    </div>
+
+    <!-- Delete All Button -->
+    <div class="button-container">
+        <button onclick="deleteAllBatches()">Delete All Batches</button>
+    </div>
+
+    <!-- Container for displaying batches -->
+    <div class="batch-container" id="batchContainer">
+        <!-- Batches will be displayed here dynamically -->
+    </div>
+
+    <!-- Modal for Creating New Batch -->
+    <div id="batchModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeBatchModal()">&times;</span>
+            <h2>Create New Distribution Batch</h2>
+            <form id="batchForm">
+                <label for="batchName">Batch Name</label>
+                <select id="batchName" name="batchName" required>
+                    <option value="" disabled selected>Select Batch Type</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Seeds">Seeds</option>
+                    <option value="Fertilizer">Fertilizer</option>
+                    <option value="Pesticide">Pesticide</option>
+                    <option value="Herbicide">Herbicide</option>
+                    <option value="Rodenticide">Rodenticide</option>
+                </select>
+
+                <label for="batchNumber">Batch Number</label>
+                <input type="text" id="batchNumber" name="batchNumber" required readonly>
+
+                <label for="totalQuantity">Total Quantity</label>
+                <input type="number" id="totalQuantity" name="totalQuantity" required>
+
+                <button type="submit" class="button">Create Batch</button>
+            </form>
         </div>
     </div>
 
-   <!-- Batch Form -->
-<form id="batchForm" onsubmit="createBatch(event)">
-    <label for="batchName">Batch Name</label>
-    <select id="batchName" required>
-        <option value="" disabled selected>Select Batch Name</option>
-        <option value="Cash">Cash</option>
-        <option value="Seeds">Seeds</option>
-        <option value="Fertilizer">Fertilizer</option>
-        <option value="Pesticide">Pesticide</option>
-        <option value="Herbicide">Herbicide</option>
-        <option value="Rodenticide">Rodenticide</option>
-    </select>
-    <label for="batchNumber">Batch Number</label>
-    <input type="text" id="batchNumber" required>
-    <label for="totalQuantity">Total Quantity</label>
-    <input type="number" id="totalQuantity" min="1" step="1" required>
-    <button type="submit">Create Batch</button>
-</form>
+    <!-- Modal for Adding Distribution Record -->
+    <div id="distributionModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeDistributionModal()">&times;</span>
+            <h2>Add Distribution Record</h2>
+            <form id="distributionForm">
+                <input type="hidden" id="distributionBatchId" name="distributionBatchId">
+                <p><strong>Batch Name:</strong> <span id="batchNameDisplay">N/A</span></p>
+                <p><strong>Batch Number:</strong> <span id="batchNumberDisplay">N/A</span></p>
 
-<div id="batchContainer"></div>
+                <label for="distributedQuantity">Distributed Quantity</label>
+                <input type="number" id="distributedQuantity" name="distributedQuantity" required>
 
-<script>
-// Generate a unique batch ID
-function generateBatchId() {
-    return 'BATCH-' + new Date().getTime();
-}
+                <label for="barangaySelect">Select Barangay</label>
+                <select id="barangaySelect" name="barangaySelect">
+                    <option value="" disabled selected>Select Barangay</option>
+                    <option value="Balacanas">Balacanas</option>
+                    <option value="Dayawan">Dayawan</option>
+                    <option value="Katipunan">Katipunan</option>
+                    <option value="Kimaya">Kimaya</option>
+                    <option value="Poblacion 1">Poblacion 1</option>
+                    <option value="Poblacion 2">Poblacion 2</option>
+                    <option value="Poblacion 3">Poblacion 3</option>
+                    <option value="San Martin">San Martin</option>
+                    <option value="Tambobong">Tambobong</option>
+                    <option value="Imelda">Imelda</option>
+                    <option value="Looc">Looc</option>
+                </select>
 
-// Create a new batch and send to backend
-function createBatch(event) {
-    event.preventDefault();
+                <button type="submit" class="button">Submit Distribution</button>
+            </form>
+        </div>
+    </div>
 
-    const batchId = generateBatchId();
-    const batchName = document.getElementById('batchName').value;
-    const batchNumber = document.getElementById('batchNumber').value;
-    const totalQuantity = document.getElementById('totalQuantity').value;
+    <script>
+        // Function to open the Create Batch modal
+        function openBatchModal() {
+            document.getElementById('batchModal').style.display = 'block';
+        }
 
-    if (!totalQuantity || totalQuantity <= 0) {
-        alert("Total Quantity must be a positive number.");
+        // Function to close the Create Batch modal
+        function closeBatchModal() {
+            document.getElementById('batchModal').style.display = 'none';
+        }
+
+        // Function to open the Distribution modal
+        function openDistributionModal(batchId, batchName, batchNumber) {
+            document.getElementById('distributionModal').style.display = 'block';
+            document.getElementById('distributionBatchId').value = batchId;
+            document.getElementById('batchNameDisplay').textContent = batchName;
+            document.getElementById('batchNumberDisplay').textContent = batchNumber;
+        }
+
+        // Function to close the Distribution modal
+        function closeDistributionModal() {
+            document.getElementById('distributionModal').style.display = 'none';
+        }
+
+        // Function to load and display batches
+        function loadBatches() {
+            fetch('fetch_batches.php')
+                .then(response => response.json())
+                .then(batches => {
+                    const batchContainer = document.getElementById('batchContainer');
+                    batchContainer.innerHTML = '';  // Clear existing batches
+                    batches.forEach(batch => {
+                        const batchBox = document.createElement('div');
+                        batchBox.className = 'batch-box';
+                        batchBox.id = 'batch-' + batch.id;
+
+                        batchBox.innerHTML = `
+                            <input type="checkbox" class="batch-checkbox" data-id="${batch.id}">
+                            <h3>${batch.batch_name}</h3>
+                            <p>Batch Number: ${batch.batch_number}</p>
+                            <p>Total Quantity: ${batch.total_quantity}</p>
+                            <p>Remaining Quantity: ${batch.remaining_quantity}</p>
+                        `;
+                        batchBox.onclick = () => openDistributionModal(batch.id, batch.batch_name, batch.batch_number);
+                        batchContainer.appendChild(batchBox);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load batches.');
+                });
+        }
+
+        // Load batches on page load
+        loadBatches();
+
+        // Function to delete selected batches
+        function deleteSelectedBatches() {
+            const selectedCheckboxes = document.querySelectorAll('.batch-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('No batches selected for deletion');
+                return;
+            }
+
+            selectedCheckboxes.forEach(checkbox => {
+                const batchId = checkbox.getAttribute('data-id');
+                const batchElement = document.getElementById('batch-' + batchId);
+                if (batchElement) {
+                    batchElement.remove();  // Remove the batch from the DOM
+                }
+            });
+
+            alert('Selected batches deleted successfully!');
+        }
+
+        // Function to delete all batches
+        function deleteAllBatches() {
+            const allBatches = document.querySelectorAll('.batch-box');
+            if (allBatches.length === 0) {
+                alert('No batches to delete');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete all batches?')) {
+                allBatches.forEach(batch => {
+                    batch.remove();  // Remove each batch from the DOM
+                });
+
+                alert('All batches deleted successfully!');
+            }
+        }
+
+        // Function to delete selected batches from the frontend only
+function deleteSelectedBatches() {
+    const selectedCheckboxes = document.querySelectorAll('.batch-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('No batches selected for deletion');
         return;
     }
 
-    // Prepare data to send to backend
-    const batchData = {
-        batch_id: batchId,
-        batch_name: batchName,
-        batch_number: batchNumber,
-        total_quantity: parseInt(totalQuantity, 10),
-        remaining_quantity: parseInt(totalQuantity, 10),
-    };
+    // Remove the batches from the DOM (frontend)
+    selectedCheckboxes.forEach(checkbox => {
+        const batchId = checkbox.getAttribute('data-id');
+        const batchElement = document.getElementById('batch-' + batchId);
+        if (batchElement) {
+            batchElement.remove();  // Remove the batch from the DOM
+        }
+    });
 
-    // Send data to backend via POST
-    fetch('create_batch.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(batchData),
-    })
-        .then((response) => response.json())
-        .then((data) => {
+    alert('Selected batches deleted from view.');
+    
+    // Optionally, you could call a backend function here to delete them from the database if needed.
+}
+
+// Function to delete all batches from the frontend
+function deleteAllBatches() {
+    const allBatches = document.querySelectorAll('.batch-box');
+    if (allBatches.length === 0) {
+        alert('No batches to delete');
+        return;
+    }
+
+    if (confirm('Are you sure you want to delete all batches from view?')) {
+        allBatches.forEach(batch => {
+            batch.remove();  // Remove each batch from the DOM
+        });
+
+        alert('All batches deleted from view.');
+    }
+}
+
+
+// Function to delete selected batches from the frontend and backend
+async function deleteSelectedBatchesFromBackend() {
+    const selectedCheckboxes = document.querySelectorAll('.batch-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('No batches selected for deletion');
+        return;
+    }
+
+    const batchIdsToDelete = [];
+    selectedCheckboxes.forEach(checkbox => {
+        batchIdsToDelete.push(checkbox.getAttribute('data-id'));
+    });
+
+    const confirmDeletion = confirm(`Are you sure you want to delete ${batchIdsToDelete.length} batches permanently?`);
+    if (confirmDeletion) {
+        try {
+            // Send delete request to backend
+            const response = await fetch('delete_batches.php', {
+                method: 'POST',
+                body: JSON.stringify({ batchIds: batchIdsToDelete }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
             if (data.success) {
-                alert('Batch created successfully!');
-                displayBatch(batchData); // Add to UI
+                // After confirming from backend, remove from frontend
+                selectedCheckboxes.forEach(checkbox => {
+                    const batchId = checkbox.getAttribute('data-id');
+                    const batchElement = document.getElementById('batch-' + batchId);
+                    if (batchElement) {
+                        batchElement.remove();  // Remove from frontend
+                    }
+                });
+
+                alert('Batches deleted successfully.');
             } else {
-                alert('Failed to create batch: ' + data.error);
+                alert('Failed to delete batches from backend.');
             }
-        })
-        .catch((error) => console.error('Error:', error));
+        } catch (error) {
+            console.error('Error deleting batches:', error);
+            alert('An error occurred while deleting the batches.');
+        }
+    }
 }
 
-// Display created batch on the frontend
-function displayBatch(batch) {
-    const batchContainer = document.getElementById('batchContainer');
-
-    const batchElement = document.createElement('div');
-    batchElement.classList.add('batch-item');
-    batchElement.innerHTML = `
-        <h3>${batch.batch_name} (${batch.batch_id})</h3>
-        <p>Batch Number: ${batch.batch_number}</p>
-        <p>Total Quantity: ${batch.total_quantity}</p>
-        <p>Remaining Quantity: ${batch.remaining_quantity}</p>
-    `;
-    batchContainer.appendChild(batchElement);
-}
-</script>
+    </script>
+</body>

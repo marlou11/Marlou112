@@ -1,44 +1,48 @@
 <?php
-// Include your database connection
+// Include database connection
 include('db_connection.php');
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
-// Check if the necessary POST data exists
-if (isset($_POST['batchName'], $_POST['batchNumber'], $_POST['totalQuantity'])) {
-    // Sanitize and assign the POST data to variables
-    $batchName = mysqli_real_escape_string($conn, $_POST['batchName']);
-    $batchNumber = mysqli_real_escape_string($conn, $_POST['batchNumber']);
-    $totalQuantity = (int)$_POST['totalQuantity'];
+// Check if the required POST data is available
+if (isset($_POST['batchName']) && isset($_POST['totalQuantity']) && isset($_POST['batchNumber'])) {
+    $batchName = $_POST['batchName'];
+    $totalQuantity = $_POST['totalQuantity'];
+    $batchNumber = $_POST['batchNumber'];
 
-    // Generate a custom batch ID (e.g., BATCH-<timestamp>)
-    $batchId = 'BATCH-' . time();
+    // Prepare the SQL statement to insert the new batch
+    $sql = "INSERT INTO batches (batch_name, total_quantity, batch_number) 
+            VALUES (?, ?, ?)";
 
-    // Prepare SQL query to insert batch data into the database
-    $sql = "INSERT INTO distribution_batches (batch_id, batch_name, batch_number, total_quantity, remaining_quantity) 
-            VALUES ('$batchId', '$batchName', '$batchNumber', $totalQuantity, $totalQuantity)";
+    // Prepare the statement
+    if ($stmt = $conn->prepare($sql)) {
+        // Bind parameters
+        $stmt->bind_param("sis", $batchName, $totalQuantity, $batchNumber); // s = string, i = integer
 
-    if (mysqli_query($conn, $sql)) {
-        
-        // Return the new batch information as a JSON response
-        echo json_encode([
-            "status" => "success",
-            "batch_id" => $batchId,
-            "batch_name" => $batchName,
-            "batch_number" => $batchNumber,
-            "total_quantity" => $totalQuantity
-            
-        ]);
+        // Execute the statement
+        if ($stmt->execute()) {
+            // Send success response
+            echo json_encode([
+                "status" => "success",
+                "message" => "Batch created successfully"
+            ]);
+        } else {
+            // Error creating batch
+            echo json_encode([
+                "status" => "error",
+                "message" => "Failed to create batch"
+            ]);
+        }
+
+        // Close the statement
+        $stmt->close();
     } else {
-        // Return an error response in case of failure
+        // Error preparing the query
         echo json_encode([
             "status" => "error",
-            "message" => mysqli_error($conn)
+            "message" => "Database error: " . $conn->error
         ]);
     }
 } else {
-    // Return a response indicating that required data is missing
+    // Required data is missing
     echo json_encode([
         "status" => "error",
         "message" => "Required data missing!"
@@ -46,5 +50,5 @@ if (isset($_POST['batchName'], $_POST['batchNumber'], $_POST['totalQuantity'])) 
 }
 
 // Close the database connection
-mysqli_close($conn);
+$conn->close();
 ?>

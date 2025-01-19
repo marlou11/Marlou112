@@ -1,31 +1,38 @@
 <?php
-include 'db_connection.php';
+include('db_connection.php');
+// Database connection (ensure to replace with your actual credentials)
+$mysqli = new mysqli('localhost', 'username', 'password', 'database');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $batchId = $_POST['batchId'];
+// Check for connection errors
+if ($mysqli->connect_error) {
+    die("Connection failed: " . $mysqli->connect_error);
+}
+
+// Ensure the batch ID and selected farmers are passed in the request
+if (isset($_POST['distributionBatchId']) && isset($_POST['selectedFarmers'])) {
+    $batchId = $_POST['distributionBatchId'];
     $distributedQuantity = $_POST['distributedQuantity'];
-    $distributedTo = $_POST['distributedTo'];
-    $dateDistributed = $_POST['dateDistributed'];
+    $distributionDate = $_POST['distributionDate'];
+    $selectedFarmers = $_POST['selectedFarmers'];
 
-    // Insert distribution record
-    $sql = "INSERT INTO distribution_records (batch_id, distributed_quantity, distributed_to, date_distributed)
-            VALUES (?, ?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('siss', $batchId, $distributedQuantity, $distributedTo, $dateDistributed);
+    // Update the batch's remaining quantity in the database
+    $query = "UPDATE batches SET remaining_quantity = remaining_quantity - ? WHERE batch_id = ?";
+    $stmt = $mysqli->prepare($query);
+    $stmt->bind_param('ii', $distributedQuantity, $batchId);
+    $stmt->execute();
 
-    if ($stmt->execute()) {
-        // Update remaining quantity in the batch
-        $updateSql = "UPDATE distribution_batches SET remaining_quantity = remaining_quantity - ? WHERE batch_id = ?";
-        $updateStmt = $conn->prepare($updateSql);
-        $updateStmt->bind_param('is', $distributedQuantity, $batchId);
-        $updateStmt->execute();
-
-        echo json_encode(['success' => true, 'message' => 'Distribution added successfully']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Error adding distribution']);
+    // Insert a new distribution record for each selected farmer
+    foreach ($selectedFarmers as $farmerId) {
+        $query = "INSERT INTO distribution_records (batch_id, farmer_id, distributed_quantity, distribution_date) VALUES (?, ?, ?, ?)";
+        $stmt = $mysqli->prepare($query);
+        $stmt->bind_param('iiis', $batchId, $farmerId, $distributedQuantity, $distributionDate);
+        $stmt->execute();
     }
 
-    $stmt->close();
-    $conn->close();
+    echo "Distribution record added successfully.";
+} else {
+    echo "Error: Missing data.";
 }
+
+$mysqli->close();
 ?>

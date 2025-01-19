@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribution Records</title>
+    <script>
+        async function loadFarmersByBarangay(barangay) {
+            try {
+                const response = await fetch(`fetch_users_by_barangay.php?barangay=${barangay}`);
+                const farmers = await response.json();
+
+                const farmerCheckboxesDiv = document.getElementById('farmerCheckboxes');
+                farmerCheckboxesDiv.innerHTML = ''; // Clear existing checkboxes
+
+                if (farmers.length === 0) {
+                    farmerCheckboxesDiv.innerHTML = '<p>No farmers found for this Barangay.</p>';
+                } else {
+                    farmers.forEach(farmer => {
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.classList.add('checkbox-container');
+                        checkboxContainer.style.display = 'flex';
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.name = 'distributedTo[]';
+                        checkbox.value = farmer.rsba_number;
+
+                        const label = document.createElement('label');
+                        label.textContent = `${farmer.first_name} ${farmer.last_name} (RSBA: ${farmer.rsba_number})`;
+
+                        checkboxContainer.appendChild(checkbox);
+                        checkboxContainer.appendChild(label);
+                        farmerCheckboxesDiv.appendChild(checkboxContainer);
+                    });
+                }
+
+                document.getElementById('farmerSelectionContainer').style.display = 'block';
+            } catch (error) {
+                console.error('Error fetching farmers:', error);
+                alert('An error occurred while fetching farmers.');
+            }
+        }
+
+        function calculateRemainingQuantity() {
+            const quantityInput = document.getElementById('distributionQuantity').value;
+            const selectedFarmers = document.querySelectorAll("input[name='distributedTo[]']:checked");
+            const totalQuantity = quantityInput * selectedFarmers.length;
+
+            document.getElementById('totalDistributed').innerText = `Total Distributed: ${totalQuantity}`;
+        }
+
+        async function submitDistributionForm() {
+            const batchId = document.getElementById('batchId').value;
+            const quantity = document.getElementById('distributionQuantity').value;
+            const barangay = document.getElementById('barangaySelect').value;
+            const distributionDate = document.getElementById('distributionDate').value;
+            const selectedFarmers = Array.from(document.querySelectorAll("input[name='distributedTo[]']:checked"))
+                .map(farmer => farmer.value);
+
+            if (!batchId || !quantity || !barangay || !distributionDate || selectedFarmers.length === 0) {
+                alert('Please fill out all fields and select at least one farmer.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('batchId', batchId);
+            formData.append('quantity', quantity);
+            formData.append('barangay', barangay);
+            formData.append('distributionDate', distributionDate);
+            formData.append('farmers', JSON.stringify(selectedFarmers));
+
+            try {
+                const response = await fetch('process_distribution.php', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const result = await response.text();
+                alert(result);
+                window.location.reload();
+            } catch (error) {
+                console.error('Error submitting form:', error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Distribution Records</h1>
+    <h2>Batches</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Batch ID</th>
+                <th>Batch Name</th>
+                <th>Remaining Quantity</th>
+                <th>Add Distribution</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php while ($batch = $batches_result->fetch_assoc()) { ?>
+                <tr>
+                    <td><?php echo $batch['batch_id']; ?></td>
+                    <td><?php echo $batch['batch_name']; ?></td>
+                    <td><?php echo $batch['remaining_quantity']; ?></td>
+                    <td>
+                        <button onclick="document.getElementById('batchId').value='<?php echo $batch['batch_id']; ?>';">Distribute</button>
+                    </td>
+                </tr>
+            <?php } ?>
+        </tbody>
+    </table>
+
+    <div id="distributionModal">
+        <label>Batch ID: <span id="batchId"></span></label><br>
+        <label>Distribution Quantity:</label>
+        <input type="number" id="distributionQuantity" oninput="calculateRemainingQuantity()" required><br>
+        <label>Select Barangay:</label>
+        <select id="barangaySelect" onchange="loadFarmersByBarangay(this.value)" required>
+            <option value="">--Select Barangay--</option>
+            <option value="Balacanas">Balacanas</option>
+            <option value="Dayawan">Dayawan</option>
+            <!-- Add more barangays -->
+        </select><br>
+        <div id="farmerSelectionContainer" style="display: none;">
+            <label>Farmers:</label>
+            <div id="farmerCheckboxes"></div>
+        </div>
+        <label for="distributionDate">Date:</label>
+        <input type="date" id="distributionDate" required><br>
+        <p id="totalDistributed">Total Distributed: 0</p>
+        <button onclick="submitDistributionForm()">Submit</button>
+    </div>
+</body>
+</html>
