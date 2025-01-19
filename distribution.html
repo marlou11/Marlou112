@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #batchContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .batch-box {
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .batch-box.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            overflow-y: auto;
+            background-color: white;
+            padding: 20px;
+            transform: scale(1.05);
+        }
+
+        .batch-box h3 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+        }
+
+        .batch-box p {
+            margin: 5px 0;
+        }
+
+        .modal-close {
+            font-size: 20px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Batch Management</h1>
+    <button onclick="openBatchForm()">Create New Batch</button>
+
+    <!-- Batch Form Modal -->
+    <div id="batchFormModal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeBatchForm()">&times;</span>
+            <h2>Create New Batch</h2>
+            <form id="batchForm" onsubmit="createBatch(event)">
+                <label for="batchName">Batch Name</label>
+                <select id="batchName" required>
+                    <option value="" disabled selected>Select Batch Name</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Seeds">Seeds</option>
+                    <option value="Fertilizer">Fertilizer</option>
+                    <option value="Pesticide">Pesticide</option>
+                    <option value="Herbicide">Herbicide</option>
+                    <option value="Rodenticide">Rodenticide</option>
+                </select>
+                <label for="batchNumber">Batch Number</label>
+                <input type="text" id="batchNumber" required>
+                <label for="totalQuantity">Total Quantity</label>
+                <input type="number" id="totalQuantity" min="1" required>
+                <button type="submit">Create Batch</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch Container -->
+    <div id="batchContainer"></div>
+
+    <script>
+        // Open the batch creation form modal
+        function openBatchForm() {
+            document.getElementById('batchFormModal').style.display = 'block';
+        }
+
+        // Close the batch creation form modal
+        function closeBatchForm() {
+            document.getElementById('batchFormModal').style.display = 'none';
+        }
+
+        // Generate a unique batch ID
+        function generateBatchId() {
+            return 'BATCH-' + new Date().getTime();
+        }
+
+        // Create a new batch and display it
+        function createBatch(event) {
+            event.preventDefault();
+
+            const batchId = generateBatchId();
+            const batchName = document.getElementById('batchName').value;
+            const batchNumber = document.getElementById('batchNumber').value;
+            const totalQuantity = parseInt(document.getElementById('totalQuantity').value, 10);
+
+            if (!totalQuantity || totalQuantity <= 0) {
+                alert("Total Quantity must be greater than 0.");
+                return;
+            }
+
+            const batchData = {
+                batch_id: batchId,
+                batch_name: batchName,
+                batch_number: batchNumber,
+                total_quantity: totalQuantity,
+                remaining_quantity: totalQuantity,
+            };
+
+            // Simulate saving to backend
+            console.log("Saving batch to backend:", batchData);
+
+            // Display batch in the UI
+            displayBatch(batchData);
+
+            // Close the form modal
+            closeBatchForm();
+
+            // Clear the form
+            document.getElementById('batchForm').reset();
+        }
+
+        // Display a batch in the UI
+        function displayBatch(batch) {
+            const batchContainer = document.getElementById('batchContainer');
+
+            const batchBox = document.createElement('div');
+            batchBox.classList.add('batch-box');
+            batchBox.innerHTML = `
+                <h3>${batch.batch_name} (${batch.batch_id})</h3>
+                <p>Batch Number: ${batch.batch_number}</p>
+                <p>Total Quantity: ${batch.total_quantity}</p>
+                <p>Remaining Quantity: ${batch.remaining_quantity}</p>
+            `;
+
+            // Toggle full-screen on click
+            batchBox.addEventListener('click', function () {
+                if (batchBox.classList.contains('fullscreen')) {
+                    batchBox.classList.remove('fullscreen');
+                } else {
+                    batchBox.classList.add('fullscreen');
+                }
+            });
+
+            batchContainer.appendChild(batchBox);
+        }
+    </script>
+</body>
+</html>
